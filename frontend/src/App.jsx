@@ -1,10 +1,16 @@
 import React, { useState } from 'react'
-import { Button, Form, Image, Input, Modal, Select, Table } from 'antd';
+import { Button, Form, Image, Input, message, Modal, Select, Table } from 'antd';
 import { DeleteFilled, EditFilled, PlusOutlined } from '@ant-design/icons';
+import axios from 'axios';
+
+axios.defaults.baseURL = "http://localhost:5000";
 
 const App = () => {
 
+  const [registerForm] = Form.useForm();
   const [modal, setModal] = useState(false);
+  const [disabledRegBtn, setDisabledRegBtn] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
 
   const columns = [
     {
@@ -156,6 +162,70 @@ const App = () => {
 
   ];
 
+  // onsubmit form handle
+  const handleRegisterOnSubmit = async (values) => {
+    values.profile = profileImageUrl || "https://img.freepik.com/free-photo/androgynous-avatar-non-binary-queer-person_23-2151100226.jpg?t=st=1728660784~exp=1728664384~hmac=a9dae7ce5ef9f0988dcf1de4cdfaa509c377beb179e945a92814e9f34ea40648&w=740";
+
+    try {
+      const { data } = await axios.post(
+        '/api/register/create',
+        values
+      );
+
+      if (data.success) {
+        message.success(data.message || "Register successfully");
+        registerForm.resetFields();
+        setModal(false);
+      } else {
+        message.error(data.message || "Unable to register, try again later!");
+      }
+    } catch (error) {
+      message.error(error.message || "Unable to register, try again later!");
+    }
+  }
+
+  const handleProfileImage = (e) => {
+    let file = e.target.files[0];
+    let fileReader = new FileReader();
+
+    if (file && file.size <= 60000) {
+      setDisabledRegBtn(false);
+      registerForm.setFields([
+        {
+          name: 'profile',
+          errors: [
+          ]
+        }
+      ]);
+
+      fileReader.readAsDataURL(file);
+      fileReader.onload = (event) => {
+        setProfileImageUrl(event.target.result);
+      }
+
+    } else if (!file) {
+      setDisabledRegBtn(false);
+      registerForm.setFields([
+        {
+          name: 'profile',
+          errors: [
+          ]
+        }
+      ]);
+    } else {
+      setDisabledRegBtn(true);
+      registerForm.setFields([
+        {
+          name: 'profile',
+          errors: [
+            "Max 60kb image file size are allowed!"
+          ]
+        }
+      ])
+    }
+
+  }
+
   return (
     <div className='min-h-screen flex flex-col items-center bg-green-100 p-2 md:p-4'>
       <div className='flex justify-between items-center bg-blue-400 w-10/12 my-5 p-4 rounded'>
@@ -202,6 +272,8 @@ const App = () => {
           variant='outlined'
           layout='vertical'
           className='font-semibold shadow-lg p-2 rounded bg-gray-100'
+          form={registerForm}
+          onFinish={handleRegisterOnSubmit}
         >
           <div className='grid md:grid-cols-2 gap-x-2'>
 
@@ -212,6 +284,7 @@ const App = () => {
               <Input
                 type='file'
                 className='shadow'
+                onChange={handleProfileImage}
               />
             </Form.Item>
 
@@ -313,6 +386,8 @@ const App = () => {
               className='shadow w-full bg-blue-600 text-white font-semibold'
               size='large'
               icon={<PlusOutlined />}
+              htmlType='submit'
+              disabled={disabledRegBtn}
             >
               Register Now
             </Button>
