@@ -3,7 +3,7 @@ import { Button, Form, Image, Input, message, Modal, Select, Table } from 'antd'
 import { DeleteFilled, EditFilled, PlusOutlined, SaveOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-axios.defaults.baseURL = "http://localhost:5000";
+axios.defaults.baseURL = "https://mern-crud-2024-jfc.onrender.com" || "http://localhost:5000";
 
 const App = () => {
 
