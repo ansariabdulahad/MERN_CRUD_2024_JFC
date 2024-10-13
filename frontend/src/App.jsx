@@ -157,7 +157,11 @@ const App = () => {
     try {
       const { data } = await axios.get('/api/register');
       if (data.success) {
-        setRegisteredData(data.data);
+        const modifiedData = data.data.map((item) => ({
+          ...item,
+          key: item._id
+        }));
+        setRegisteredData(modifiedData);
       }
     } catch (error) {
       console.log(error);
