@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button, Form, Image, Input, message, Modal, Select, Table } from 'antd';
-import { DeleteFilled, EditFilled, PlusOutlined } from '@ant-design/icons';
+import { DeleteFilled, EditFilled, PlusOutlined, SaveOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 axios.defaults.baseURL = "http://localhost:5000";
@@ -11,17 +11,24 @@ const App = () => {
   const [modal, setModal] = useState(false);
   const [disabledRegBtn, setDisabledRegBtn] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [editProfileImage, setEditProfileImage] = useState(null);
+  const [registeredData, setRegisteredData] = useState([]);
+  const [isRegisterEdit, setIsRegisterEdit] = useState(false);
+  const [editRegisterId, setEditRegisterId] = useState(null);
 
   const columns = [
     {
       title: 'Profile',
       dataIndex: 'profile',
-      key: 'profile'
+      key: 'profile',
+      render: (_, obj) => (
+        <Image src={obj.profile} alt='profile-image' width={40} height={40} className='rounded-full shadow-sm' />
+      )
     },
     {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name'
+      title: 'Fullname',
+      dataIndex: 'fullname',
+      key: 'fullname'
     },
     {
       title: 'Email',
@@ -52,7 +59,7 @@ const App = () => {
       title: 'Action',
       dataIndex: 'action',
       key: 'action',
-      render: () => (
+      render: (_, obj) => (
         <div className='flex gap-2'>
           <Button
             icon={<EditFilled />}
@@ -61,6 +68,7 @@ const App = () => {
             size='large'
             className='shadow-lg bg-green-500 hover:bg-white hover:border-1 hover:border-green-700
              text-white hover:text-green-700 font-bold'
+            onClick={() => handleEditRegisterData(obj)}
           />
           <Button
             icon={<DeleteFilled />}
@@ -68,98 +76,11 @@ const App = () => {
             type='text'
             size='large'
             className='shadow-lg bg-red-500 hover:bg-white hover:border-1 hover:border-red-700 text-white hover:text-red-700 font-bold'
+            onClick={() => handleDeleteRegisterData(obj._id)}
           />
         </div>
       )
     }
-  ];
-
-  const data = [
-    {
-      key: '1',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-    {
-      key: '2',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-    {
-      key: '3',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-    {
-      key: '4',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-    {
-      key: '5',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-    {
-      key: '6',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-    {
-      key: '7',
-      profile: <Image src={"/images/avatar.jpeg"} width={40} alt='profile-img'
-        className='rounded-full object-center shadow-sm'
-      />,
-      name: "Abdul Ahad Ansari",
-      email: "ansariabdulahad3@gmail.com",
-      mobile: 9545282408,
-      dob: "23-01-2001",
-      gender: "Male",
-      address: "Bhiwandi, Thane, Maharashtra, India"
-    },
-
   ];
 
   // onsubmit form handle
@@ -174,12 +95,18 @@ const App = () => {
 
       if (data.success) {
         message.success(data.message || "Register successfully");
+        setProfileImageUrl(null);
         registerForm.resetFields();
         setModal(false);
+        getAllRegisteredData();
       } else {
         message.error(data.message || "Unable to register, try again later!");
       }
     } catch (error) {
+      if (error.response.data.error.code === 11000) {
+        let email = error.response.data.error.errorResponse.keyPattern.email;
+        registerForm.setFields([{ name: email ? "email" : "mobile", errors: ["Already exists, try different one!"] }]);
+      }
       message.error(error.message || "Unable to register, try again later!");
     }
   }
@@ -226,6 +153,68 @@ const App = () => {
 
   }
 
+  const getAllRegisteredData = async () => {
+    try {
+      const { data } = await axios.get('/api/register');
+      if (data.success) {
+        setRegisteredData(data.data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const handleDeleteRegisterData = async (getId) => {
+    try {
+      const { data } = await axios.delete('/api/register/' + getId);
+      if (data.success) {
+        message.success(data.message || "Register deleted successfully");
+        getAllRegisteredData();
+      } else {
+        message.error(data.message || "Unable to delete registration");
+      }
+    } catch (error) {
+      console.log(error);
+      message.error(error.message || "Server error, try again");
+    }
+  }
+
+  const handleEditRegisterData = async (getData) => {
+    setEditProfileImage(getData.profile);
+    delete getData.profile; // remove before edit
+    setIsRegisterEdit(true);
+    setEditRegisterId(getData._id);
+    setModal(true);
+    registerForm.setFieldsValue(getData);
+  }
+
+  const handleEditRegisterOnSubmit = async (values) => {
+    values.profile = profileImageUrl || editProfileImage;
+    // profileImageUrl ? values.profile = profileImageUrl : delete values.profile;
+
+    try {
+      const { data } = await axios.put('/api/register/' + editRegisterId, values);
+
+      if (data.success) {
+        message.success(data.message || "Registeration updated successfully");
+        setEditRegisterId(null);
+        setIsRegisterEdit(false);
+        registerForm.resetFields();
+        setModal(false);
+        getAllRegisteredData();
+      } else {
+        message.error(data.message || "Unable to update registration");
+      }
+    } catch (error) {
+      console.log(error);
+      message.error(error.message || "Unable to edit registration, try again");
+    }
+  }
+
+  useEffect(() => {
+    getAllRegisteredData();
+  }, []);
+
   return (
     <div className='min-h-screen flex flex-col items-center bg-green-100 p-2 md:p-4'>
       <div className='flex justify-between items-center bg-blue-400 w-10/12 my-5 p-4 rounded'>
@@ -244,9 +233,9 @@ const App = () => {
 
       <Table
         columns={columns}
-        dataSource={data || []}
+        dataSource={registeredData || []}
         scroll={{
-          x: 1000,
+          x: "max-content",
           // y: "max-content"
         }}
         pagination={{
@@ -258,12 +247,17 @@ const App = () => {
 
       <Modal
         open={modal}
-        onCancel={() => setModal(false)}
+        onCancel={() => {
+          setModal(false);
+          registerForm.resetFields();
+          setProfileImageUrl(null);
+          setIsRegisterEdit(false);
+        }}
         footer={null}
         width={720}
         title={
           <h1 className='font-semibold text-xl my-5 text-center'>
-            Registration Form
+            {isRegisterEdit ? "Edit Register Data" : "Registration Form"}
           </h1>
         }
       >
@@ -273,7 +267,7 @@ const App = () => {
           layout='vertical'
           className='font-semibold shadow-lg p-2 rounded bg-gray-100'
           form={registerForm}
-          onFinish={handleRegisterOnSubmit}
+          onFinish={isRegisterEdit ? handleEditRegisterOnSubmit : handleRegisterOnSubmit}
         >
           <div className='grid md:grid-cols-2 gap-x-2'>
 
@@ -315,6 +309,7 @@ const App = () => {
                 className='shadow'
                 size='large'
                 placeholder='Enter email address'
+                disabled={isRegisterEdit}
               />
             </Form.Item>
 
@@ -383,13 +378,14 @@ const App = () => {
 
           <Form.Item>
             <Button
-              className='shadow w-full bg-blue-600 text-white font-semibold'
+              className={`shadow w-full bg-blue-600 text-white font-semibold 
+              ${isRegisterEdit && "bg-yellow-500 text-black"}`}
               size='large'
-              icon={<PlusOutlined />}
+              icon={isRegisterEdit ? <SaveOutlined /> : <PlusOutlined />}
               htmlType='submit'
               disabled={disabledRegBtn}
             >
-              Register Now
+              {isRegisterEdit ? "Update Register" : "Register Now"}
             </Button>
           </Form.Item>
 

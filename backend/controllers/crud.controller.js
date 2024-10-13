@@ -5,6 +5,7 @@ const create = async (req, res) => {
     try {
 
         const data = req.body;
+
         const newUser = await createRecord(Register, data);
 
         if (newUser)

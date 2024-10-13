@@ -5,7 +5,7 @@ const createRecord = async (schema, data) => {
 
 // read the data
 const readRecord = async (schema) => {
-    return await schema.find();
+    return await schema.find().sort({ _id: -1 });
 }
 
 // update the  data

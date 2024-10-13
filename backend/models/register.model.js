@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const registerSchema = new mongoose.Schema({
     profile: { type: String },
+    fullname: { type: String },
     email: { type: String, required: true, unique: true },
     mobile: { type: String, required: true, unique: true },
     dob: { type: String, required: true },

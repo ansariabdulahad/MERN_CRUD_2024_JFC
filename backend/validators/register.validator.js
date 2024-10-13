@@ -4,6 +4,9 @@ const registerSchema = z.object({
     profile: z
         .string()
         .trim(),
+    fullname: z
+        .string()
+        .trim(),
     email: z
         .string({ required_error: "Email is required!" })
         .trim()
